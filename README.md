@@ -1,248 +1,148 @@
-# Comprehensive Step-by-Step Guide: Orchestrating Data Pipelines with Airflow, BigQuery, and dbt
+# Comprehensive Overview: Airflow Orchestration with BigQuery and dbt
 
-This guide explains how to build a data pipeline leveraging Apache Airflow, Google BigQuery, and dbt to automate healthcare-related data workflows. Each section provides clear, actionable instructions. This project was built and documented by Sujeeth
+This project demonstrates an end-to-end data pipeline that I implemented using Apache Airflow, Google BigQuery, and dbt to automate healthcare data workflows. It showcases how raw data is generated, ingested, tested, and transformed into curated analytical datasets. The project was developed and explained by Emeka, with a video walkthrough available [here](https://youtu.be/a8wP37AX-d8).
 
 ---
 
 ## Data Pipeline Overview
-- **Overview**: The diagram depicts the pipeline workflow orchestrated through Airflow, BigQuery, and dbt. It shows each stage from generating raw data with a Python script (uploaded to Google Cloud Storage), to creating BigQuery external tables, performing initial data quality checks, and running dbt models with tests.
+- **Overview**: The diagram below depicts the pipeline’s orchestration flow. It highlights the sequence of tasks: generating raw healthcare data with Python, uploading it to Google Cloud Storage (GCS), creating BigQuery external tables over this data, executing data quality tests, and running dbt models to produce analytics-ready tables.
 - **Diagram**: ![Data Pipeline Orchestration Diagram](images/airflow_orchastration.png)
 
 ---
 
 ## Table of Contents
 - [Prerequisites](#prerequisites)
-- [Step 1: Set Up Your Development Environment](#step-1-set-up-your-development-environment)
-- [Step 2: Set Up Google Cloud Credentials](#step-2-set-up-google-cloud-credentials)
-- [Step 3: Create the Project Structure](#step-3-create-the-project-structure)
-- [Step 4: Modify the Dockerfile for Dependencies](#step-4-modify-the-dockerfile-for-dependencies)
-- [Step 5: Create the Airflow DAG](#step-5-create-the-airflow-dag)
-- [Step 6: Create External Tables in BigQuery](#step-6-create-external-tables-in-bigquery)
-- [Step 7: Set Up dbt and Run Tests](#step-7-set-up-dbt-and-run-tests)
-- [Step 8: Run dbt Transformations](#step-8-run-dbt-transformations)
-- [Step 9: Switch Between Dev and Prod Environments](#step-9-switch-between-dev-and-prod-environments)
-- [Step 10: Test and Deploy](#step-10-test-and-deploy) 
+- [Development Environment Setup](#development-environment-setup)
+- [Google Cloud Credentials Integration](#google-cloud-credentials-integration)
+- [Project Structure](#project-structure)
+- [Dockerfile Customization](#dockerfile-customization)
+- [Airflow DAG Design](#airflow-dag-design)
+- [External Table Creation in BigQuery](#external-table-creation-in-bigquery)
+- [dbt Configuration and Testing](#dbt-configuration-and-testing)
+- [dbt Transformations](#dbt-transformations)
+- [Environment Switching (Dev/Prod)](#environment-switching-devprod)
+- [Testing and Deployment](#testing-and-deployment)
 - [Result](#result)
-- [Additional Tips](#additional-tips)
+- [Additional Notes](#additional-notes)
 - [Resources](#resources)
 
 ---
 
 ## Prerequisites
-- **Purpose**: Confirm you have all tools and accounts ready before beginning.
-- **Requirements**:
-  1. **Google Cloud Platform (GCP) Account**: Create a project (e.g., `healthcare-data-project-442109`) with billing enabled and activate both GCS and BigQuery.
-     - [Google Cloud Documentation](https://cloud.google.com/docs)
-  2. **Python 3.8 or higher**: Verify using `python --version`.
-  3. **Astro CLI**: Used to run Airflow locally.
-     - [Astro CLI Installation Guide](https://docs.astronomer.io/astro/cli/install-cli)
-  4. **dbt Core**: For running transformations in BigQuery.
-     - [dbt Core Installation](https://docs.getdbt.com/docs/core/installation)
-  5. **Foundational Knowledge**: Basic understanding of Airflow, dbt, and BigQuery.
-     - [Airflow Docs](https://airflow.apache.org/docs/) | [dbt Docs](https://docs.getdbt.com/) | [BigQuery Docs](https://cloud.google.com/bigquery/docs)
+- **Overview**: The pipeline was developed on a foundation of specific tools and platforms.
+- **Details**:
+  - A **Google Cloud Platform (GCP) project** (`healthcare-data-project-442109`) was created with billing enabled and access to GCS and BigQuery.
+  - **Python 3.8+** was used as the base language for scripting and orchestration.
+  - **Astro CLI** served as the local runtime environment for managing Airflow.
+  - **dbt Core** was incorporated for modeling and transforming data in BigQuery.
+  - The implementation relied on prior working knowledge of **Airflow, dbt, and BigQuery** to design and orchestrate the end-to-end data flow.
 
 ---
 
-## Step 1: Set Up Your Development Environment
-- **Purpose**: Configure your local environment for running Airflow and building the pipeline.
-- **Instructions**:
-  1. **Install Astro CLI**:
-     - Follow the Astronomer installation instructions and confirm with `astro --version`.
-  2. **Initialize the Astro Project**:
-     - Run: `astro dev init`
-     - This sets up the initial structure (`dags`, `include`, etc.).
-  3. **Launch the Development Server**:
-     - `cd <your-project-name>`
-     - Start Airflow: `astro dev start`
-     - Access Airflow at `http://localhost:8080`.
+## Development Environment Setup
+- **Overview**: The local development setup was created using Astro CLI to host Airflow.
+- **Highlights**:
+  - The Astro project was initialized (`astro dev init`), generating the base directory structure (`dags`, `include`, etc.).
+  - The local Airflow development server was started (`astro dev start`) and made accessible via `http://localhost:8080`.
 
 ---
 
-## Step 2: Set Up Google Cloud Credentials
-- **Purpose**: Allow Airflow to authenticate and access BigQuery and GCS.
-- **Instructions**:
-  1. **Generate a Service Account**:
-     - In the GCP Console, navigate to **IAM & Admin > Service Accounts**, assign roles (`BigQuery Admin`, `Storage Admin`), and download `service_account.json`.
-  2. **Link GCP in Airflow**:
-     - Place `service_account.json` in `/usr/local/airflow/include/gcp/`.
-     - Add to `.env`:
-       ```
-       AIRFLOW__CORE__TEST_CONNECTION=Enabled
-       ``` 
-     - In Airflow UI (**Admin > Connections**):
-       - **Connection ID**: `gcp`
-       - **Type**: `Google Cloud`
-       - **Project ID**: `healthcare-data-project-442109`
-       - **Keyfile**: `/usr/local/airflow/include/gcp/service_account.json`
-     - Click **Test** to confirm.
+## Google Cloud Credentials Integration
+- **Overview**: Secure access to GCP resources was configured to allow Airflow to communicate with BigQuery and GCS.
+- **Highlights**:
+  - A GCP Service Account with roles (`BigQuery Admin`, `Storage Admin`) was created, and its `service_account.json` key stored inside `/usr/local/airflow/include/gcp/`.
+  - Airflow connections were configured via the UI using this key, enabling seamless execution of BigQuery and GCS tasks from within DAGs.
 
 ---
 
-## Step 3: Create the Project Structure
-- **Purpose**: Arrange files for smooth project management.
-- **Instructions**:
-  1. **Organize the `include` Folder**:
-     - Create subfolders:
-       - `raw_data_generation` for scripts.
-       - `gcp` for credentials.
-     - Place the `dbt` folder at the **project root**, not inside `include`.
-  2. **Add Data Generation Script**:
-     - Save `healthcare_data.py` in `raw_data_generation` to create sample files and upload them to GCS (e.g., `gs://healthcare-data-bucket-emeka/dev/`).
-     - [View Script](./include/raw_data_generation/healthcare_data.py)
+## Project Structure
+- **Overview**: The project was organized to separate concerns between orchestration, scripts, and credentials.
+- **Highlights**:
+  - Within the `include` folder:
+    - `raw_data_generation` contains Python scripts for generating and uploading mock healthcare data to GCS.
+    - `gcp` stores the service account credentials.
+  - The `dbt` project was placed at the **root level**, aligning with the Airflow DAGs and `include` directory.
 
 ---
 
-## Step 4: Modify the Dockerfile for Dependencies
-- **Purpose**: Install all required libraries within an isolated environment.
-- **Instructions**:
-  1. **Edit `Dockerfile`**:
-     ```
-     FROM quay.io/astronomer/astro-runtime:12.6.0
-
-     ENV VENV_PATH="/usr/local/airflow/dbt_venv"
-     ENV PATH="$VENV_PATH/bin:$PATH"
-
-     RUN python -m venv $VENV_PATH && \
-         source $VENV_PATH/bin/activate && \
-         pip install --upgrade pip setuptools && \
-         pip install --no-cache-dir dbt-bigquery==1.5.3 pandas Faker pyarrow numpy && \
-         deactivate
-
-     RUN echo "source $VENV_PATH/bin/activate" > /usr/local/airflow/dbt_env.sh
-     RUN chmod +x /usr/local/airflow/dbt_env.sh
-     ```
-  2. **Restart the Environment**:
-     - Run: `astro dev restart`
+## Dockerfile Customization
+- **Overview**: The Astro Runtime Dockerfile was customized to install all required dependencies in an isolated virtual environment.
+- **Highlights**:
+  - A virtual environment was created at `/usr/local/airflow/dbt_venv`.
+  - Core libraries like `dbt-bigquery`, `pandas`, `Faker`, `pyarrow`, and `numpy` were installed.
+  - The environment was activated by default on container startup, ensuring dbt commands can run inside Airflow tasks.
 
 ---
 
-## Step 5: Create the Airflow DAG
-- **Purpose**: Define your workflow using an Airflow DAG.
-- **Instructions**:
-  1. **Make a DAG File**:
-     - Create `healthcare_pipeline_dag.py` inside `dags`.
-  2. **Import Needed Libraries**:
-     ```python
-     from airflow.decorators import dag
-     from pendulum import datetime
-     from airflow.operators.bash import BashOperator
-     from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
-     from cosmos.airflow.task_group import DbtTaskGroup
-     from cosmos.constants import LoadMode
-     from cosmos.config import RenderConfig, ProfileConfig, ProjectConfig
-     from pathlib import Path
-     ```
-  3. **Declare the DAG**:
-     ```python
-     @dag(
-         schedule=None,
-         start_date=datetime(2024, 1, 1),
-         catchup=False,
-         tags=["healthcare"],
-         doc_md="Orchestrates healthcare data pipeline with BigQuery and dbt"
-     )
-     def healthcare_pipeline():
-         pass
-     ```
-  4. **Add Task 1: Data Generation**:
-     ```python
-     PATH_TO_DATA_SCRIPT = "/usr/local/airflow/include/raw_data_generation/healthcare_data.py"
-     generate_data = BashOperator(
-         task_id="generate_data",
-         bash_command=f"python {PATH_TO_DATA_SCRIPT}"
-     )
-     ```
+## Airflow DAG Design
+- **Overview**: Workflow orchestration is implemented through an Airflow DAG named `healthcare_pipeline_dag.py`.
+- **Key Points**:
+  - The DAG is defined with no schedule (manual triggering), tags for easy categorization, and an initial `start_date`.
+  - It begins with a **BashOperator** task (`generate_data`) that executes the Python script to produce raw data files and upload them to GCS.
+  - Subsequent tasks build upon this output to create BigQuery external tables and execute dbt tasks.
 
 ---
 
-## Step 6: Create External Tables in BigQuery
-- **Purpose**: Connect raw files in GCS directly to BigQuery.
-- **Instructions**:
-  1. **Write SQL File** (`create_external_tables.sql`):
-     ```sql
-     CREATE OR REPLACE EXTERNAL TABLE ...
-     ```
-     - External tables let you query GCS data without moving it into BigQuery.
-  2. **Add to DAG**:
-     ```python
-     PATH_TO_SQL_SCRIPT = "/usr/local/airflow/include/raw_data_generation/create_external_tables.sql"
-     with open(PATH_TO_SQL_SCRIPT, "r") as f:
-         CREATE_EXTERNAL_TABLES_SQL = f.read()
-     ...
-     generate_data >> create_external_tables
-     ```
+## External Table Creation in BigQuery
+- **Overview**: Raw data stored in GCS is exposed to BigQuery through external tables for direct querying.
+- **Key Points**:
+  - SQL scripts in `create_external_tables.sql` define three external tables (`patient_data_external`, `ehr_data_external`, `claims_data_external`).
+  - A **BigQueryInsertJobOperator** runs these scripts from within the DAG, enabling SQL-based querying without physically loading data into BigQuery storage.
 
 ---
 
-## Step 7: Set Up dbt and Run Tests
-- **Purpose**: Configure dbt (now located in the root) and test your data sources.
-- **Instructions**:
-  1. **Create a dbt Project** inside `dbt/healthcare_dbt_bigquery_data_pipeline`.
-  2. **Add Config Files** (`dbt_project.yml`, `profiles.yml`, `cosmos_config.py`).
-  3. **Create a Test Task** in the DAG:
-     ```python
-     dbt_test_raw = BashOperator(
-         task_id="dbt_test_raw",
-         bash_command="source /usr/local/airflow/dbt_venv/bin/activate && dbt test --select source:*",
-         cwd="/usr/local/airflow/dbt/healthcare_dbt_bigquery_data_pipeline"
-     )
-     ```
+## dbt Configuration and Testing
+- **Overview**: dbt was used for data quality testing and modeling.
+- **Key Points**:
+  - A dedicated dbt project (`dbt/healthcare_dbt_bigquery_data_pipeline`) was created at the repository root.
+  - `dbt_project.yml`, `profiles.yml`, and a `cosmos_config.py` were set up to enable dbt execution through Astronomer Cosmos.
+  - Initial source tests were implemented to validate the raw data immediately after external table creation.
 
 ---
 
-## Step 8: Run dbt Transformations
-- **Purpose**: Execute dbt models to clean and reshape your data.
-- **Instructions**:
-  1. **Add the Transformation Task**:
-     ```python
-     transform = DbtTaskGroup(...)
-     ```
-  2. **Confirm Dependencies** in `requirements.txt`:
-     ```
-     apache-airflow-providers-google
-     astronomer-cosmos==1.8.2
-     ```
+## dbt Transformations
+- **Overview**: Transformation logic was built with dbt models to clean and reshape the data.
+- **Key Points**:
+  - A `DbtTaskGroup` inside the DAG runs all models within `models/`, following successful completion of tests.
+  - Supporting dependencies such as `astronomer-cosmos` and `apache-airflow-providers-google` were included in `requirements.txt`.
 
 ---
 
-## Step 9: Switch Between Dev and Prod Environments
-- **Purpose**: Easily toggle between dev and prod.
-- **Instructions**:
-  1. **In `cosmos_config.py`**, change `target_name` to `prod`.
-  2. **In the DAG**, dynamically replace `dev` with `prod` in SQL paths.
+## Environment Switching (Dev/Prod)
+- **Overview**: The pipeline can seamlessly switch between development and production environments.
+- **Key Points**:
+  - The `cosmos_config.py` file uses a `target_name` variable that determines the active environment (`dev` or `prod`).
+  - SQL scripts dynamically update dataset names and GCS paths according to the active target.
 
 ---
 
-## Step 10: Test and Deploy
-- **Purpose**: Validate locally and push to production.
-- **Instructions**:
-  1. **Local Test**:
-     ```bash
-     astro dev bash
-     source /usr/local/airflow/dbt_venv/bin/activate
-     cd /usr/local/airflow/dbt/healthcare_dbt_bigquery_data_pipeline
-     dbt test --select source:*
-     dbt run --select path:models
-     ```
-  2. **Trigger the DAG** from the Airflow UI.
-  3. **Deploy** using `astro deploy` after switching to `prod`.
+## Testing and Deployment
+- **Overview**: The pipeline was validated locally before being pushed to production.
+- **Key Points**:
+  - dbt tests and runs were executed within the Astro CLI development container.
+  - The DAG was triggered manually from the Airflow UI to verify each task’s success.
+  - After switching the configuration to `prod`, the entire setup was deployed using `astro deploy`.
 
 ---
 
 ## Result
-- **Purpose**: Summarizes what the pipeline delivers.
-- **Outcome**: This setup generates raw data, builds external tables in BigQuery, runs dbt transformations, and produces tested, curated datasets (e.g., `health_anomalies`, `patient_demographics`). Raw data is stored in GCS buckets (`healthcare-data-bucket-emeka`).
+- **Overview**: The pipeline successfully automates the end-to-end data processing lifecycle.
+- **Outcome**:
+  - Generates raw healthcare datasets and stores them in GCS.
+  - Creates BigQuery external tables on top of the raw data.
+  - Transforms data through dbt into curated analytical tables (e.g., `health_anomalies`, `patient_demographics`).
+  - Provides a reusable and extensible orchestration framework for healthcare data workflows.
 - **Visuals**:
-  - DAG View: ![healthcare_pipeline DAG](images/Airflow.png)
-  - BigQuery Table: ![health_anomalies](images/BigQuery.png)
-  - GCS Bucket: ![healthcare-data-bucket-emeka](images/GCS.png)
+  - DAG: ![healthcare_pipeline DAG](images/Airflow.png)
+  - BigQuery: ![health_anomalies table](images/BigQuery.png)
+  - GCS: ![healthcare-data-bucket-emeka](images/GCS.png)
 
 ---
 
-## Additional Tips
-- Add `on_failure_callback` to log or send alerts on errors.
-- Monitor pipelines via Airflow UI or set up Slack alerts.
-- Store credentials safely using Airflow secrets or environment variables.
+## Additional Notes
+- Error handling was integrated using `on_failure_callback` to capture and log task failures.
+- Monitoring can be extended through Slack alerts or the Airflow UI.
+- Sensitive keys are stored securely through Airflow environment variables and not hard-coded in DAGs.
 
 ---
 
@@ -256,24 +156,22 @@ This guide explains how to build a data pipeline leveraging Apache Airflow, Goog
 
 # Astro Project Structure (Post `astro dev init`)
 
-This README explains what’s created by the Astronomer CLI after running `astro dev init` and how to use it to run Airflow locally.
+In addition to the custom pipeline, the repository includes the default project structure generated by the Astronomer CLI when initializing an Astro project.
 
 ## Project Contents
-- **dags**: Contains DAG Python scripts. Comes with an `example_astronauts` DAG showing a simple ETL that prints astronaut names from the Open Notify API.
-- **Dockerfile**: Specifies the Astro Runtime image and any runtime overrides.
-- **include**: Place any extra project files here (empty initially).
-- **packages.txt**: For OS-level package installations (empty initially).
-- **requirements.txt**: For Python dependencies (empty initially).
-- **plugins**: Add custom/community plugins (empty initially).
-- **airflow_settings.yaml**: Store local-only Airflow settings (connections, variables, pools).
+- **dags**: Contains Airflow DAG Python scripts (includes an `example_astronauts` DAG for demonstration).
+- **Dockerfile**: Defines the Astro Runtime image and optional runtime overrides.
+- **include**: Holds supporting scripts and credentials.
+- **packages.txt / requirements.txt**: Used to declare OS-level and Python dependencies.
+- **plugins**: Reserved for adding custom or community plugins.
+- **airflow_settings.yaml**: Stores local-only Airflow variables, connections, and pools.
 
-## Running Locally
-1. Start Airflow: `astro dev start`
-2. Confirm containers: `docker ps`
-3. Visit `http://localhost:8080` and log in with `admin` / `admin`.
+## Local Development
+- The project can be run locally by starting the Airflow environment (`astro dev start`), verifying containers (`docker ps`), and accessing the UI at `http://localhost:8080`.
 
-## Deploying to Astronomer
-Push your code to Astronomer by following the [deployment guide](https://www.astronomer.io/docs/astro/deploy-code/).
+## Deployment
+- The finalized pipeline was deployed to Astronomer using the standard [deployment process](https://www.astronomer.io/docs/astro/deploy-code/).
 
 ## Contact
-The Astronomer CLI is maintained by the Astronomer team. Reach out to their support to report issues or request changes.
+The Astronomer CLI is maintained by the Astronomer team. For support or feature requests, their support team can be contacted directly.
+
