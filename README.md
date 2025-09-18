@@ -1,6 +1,6 @@
 # Comprehensive Step-by-Step Guide: Orchestrating Data Pipelines with Airflow, BigQuery, and dbt
 
-This guide explains how to build a data pipeline leveraging Apache Airflow, Google BigQuery, and dbt to automate healthcare-related data workflows. Each section provides clear, actionable instructions. This project was built and documented by Emeka, and you can watch the demonstration video [here](https://youtu.be/a8wP37AX-d8).
+This guide explains how to build a data pipeline leveraging Apache Airflow, Google BigQuery, and dbt to automate healthcare-related data workflows. Each section provides clear, actionable instructions. This project was built and documented by Sujeeth
 
 ---
 
