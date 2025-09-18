@@ -1,6 +1,6 @@
 # Comprehensive Overview: Airflow Orchestration with BigQuery and dbt
 
-This project demonstrates an end-to-end data pipeline that I implemented using Apache Airflow, Google BigQuery, and dbt to automate healthcare data workflows. It showcases how raw data is generated, ingested, tested, and transformed into curated analytical datasets. The project was developed and explained by Emeka, with a video walkthrough available [here](https://youtu.be/a8wP37AX-d8).
+This project demonstrates an end-to-end data pipeline that I implemented using Apache Airflow, Google BigQuery, and dbt to automate healthcare data workflows. It showcases how raw data is generated, ingested, tested, and transformed into curated analytical datasets. The project was developed and explained by Sujeeth.
 
 ---
 
